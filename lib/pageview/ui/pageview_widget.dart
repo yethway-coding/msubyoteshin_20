@@ -153,32 +153,28 @@ class _PageViewWidgetState extends State<PageViewWidget> {
       switch (_currentTab) {
         case 0:
           setCurrentPage(); //now currentPage is 0
-          animateToPage();
+          jumpToPage();
 
         case 1:
           setCurrentPage();
           changFocusOnTab();
-          animateToPage();
+          jumpToPage();
 
         case 2:
           setCurrentPage();
           changFocusOnTab();
-          animateToPage();
+          jumpToPage();
 
         case 3:
           setCurrentPage();
           changFocusOnTab();
-          animateToPage();
+          jumpToPage();
       }
     }
   }
 
-  void animateToPage() {
-    _pageController.animateToPage(
-      _currentTab,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.bounceInOut,
-    );
+  void jumpToPage() {
+    _pageController.jumpToPage(_currentTab);
   }
 
   void changFocusOnTab() {

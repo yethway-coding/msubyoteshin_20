@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:msubyoteshin_20/routes/routes.dart';
 import '/common/widgets/provider_widget.dart';
 import '/common/utils/service_locator.dart';
 import 'pageview/ui/pageview_widget.dart';
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
+        onGenerateRoute: Routes.onGenerateRoute,
         home: const PageViewWidget(),
       ),
     );

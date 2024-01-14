@@ -23,7 +23,9 @@ class PosterItem extends StatelessWidget {
         height: isFocused ? 210 : 200,
         width: isFocused ? 130 : 120,
         clipBehavior: Clip.antiAlias,
-        margin: const EdgeInsets.symmetric(horizontal: 5),
+        margin: const EdgeInsets.symmetric(
+          horizontal: 6,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           boxShadow: isFocused
@@ -45,6 +47,7 @@ class PosterItem extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Stack(
+          alignment: Alignment.bottomCenter,
           children: [
             NetworkImageView(
               url: cover,
@@ -55,16 +58,20 @@ class PosterItem extends StatelessWidget {
             ),
             if (isFocused)
               Container(
-                height: double.infinity,
                 width: double.infinity,
+                height: 70,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(.7),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8)),
                 ),
                 child: Text(
                   title ?? '',
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.clip,
                   style: const TextStyle(
                     color: Colors.white,
                   ),

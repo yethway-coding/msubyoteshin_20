@@ -1,4 +1,5 @@
 import 'package:msubyoteshin_20/features/home/provider/current_provider.dart';
+import 'package:msubyoteshin_20/routes/route_name.dart';
 import 'package:provider/provider.dart';
 
 import '../../../widgets/key_code_listener.dart';
@@ -388,8 +389,11 @@ class _MovieState extends State<Movie> {
         currentX = 0;
         _scrollToIndexXY(currentX, currentY);
         focusedIdx = ((currentY * crossAxisCount) + currentX);
+        setState(() {});
+        return;
       }
-      setState(() {});
+      var mov = movies[focusedIdx];
+      Navigator.pushNamed(context, RouteName.movieDetail, arguments: mov);
     }
   }
 
