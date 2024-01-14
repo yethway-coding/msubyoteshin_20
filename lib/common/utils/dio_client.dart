@@ -26,6 +26,7 @@ class DioClient {
     options.headers = headers;
 
     _dio.options = options;
+    _dio.interceptors.clear();
     _dio.interceptors.addAll([
       AppInterceptors(),
       PrettyDioLogger(

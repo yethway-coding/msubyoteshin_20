@@ -18,7 +18,7 @@ class CurrentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setCurrentPage(int currentPage) {
+  void changeCurrentPage(int currentPage) {
     _currentPage = currentPage;
     notifyListeners();
   }

@@ -1,30 +1,27 @@
 import 'package:msubyoteshin_20/features/home/provider/current_provider.dart';
-import 'package:provider/provider.dart';
 
 import '../../../widgets/key_code_listener.dart';
-import '/common/utils/enums.dart';
-import '/common/models/get_model.dart';
 import '/common/utils/dio_client.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '/common/widgets/fake_item.dart';
-import '../data/model/movie_model.dart';
+import '/common/models/genre_model.dart';
 import '/common/utils/reusable_widget.dart';
 import '/common/utils/service_locator.dart';
+import '../data/service/genre_api_service.dart';
 import '/common/widgets/remove_scroll_wave.dart';
-import '../../../common/widgets/poster_item.dart';
-import '/features/movie/data/service/movie_api_service.dart';
-import '/features/movie/data/model/movie_response_model.dart';
+import '/features/genre/ui/widgets/genre_card.dart';
+import '/features/genre/provider/gnere_provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-class Movie extends StatefulWidget {
-  final GetModel getModel;
-  const Movie({super.key, required this.getModel});
+class Genre extends StatefulWidget {
+  const Genre({super.key});
 
   @override
-  State<Movie> createState() => _MovieState();
+  State<Genre> createState() => _GenreState();
 }
 
-class _MovieState extends State<Movie> {
+class _GenreState extends State<Genre> {
   int _page = 1;
   bool _initLoading = true;
   bool _hasNextPage = true;
@@ -32,21 +29,23 @@ class _MovieState extends State<Movie> {
 
   final FocusNode _focus = FocusNode();
   final int crossAxisCount = 6;
+  late GenreProvider _genreProvider;
 
   final List<ItemScrollController> _scrollControllers = [];
   final ItemScrollController _scrollController = ItemScrollController();
   List<int> countsXLineSaver = [];
-  List<MovieModel> movies = [];
   int currentX = 0;
   int currentY = 0;
   int focusedIdx = 0;
 
+  late int _listCount;
   late bool _isFocusOnTab;
   late int _currentPage;
   late int _currentTab;
 
   @override
   void initState() {
+    _genreProvider = Provider.of(context, listen: false);
     _init();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       FocusScope.of(context).requestFocus(_focus);
@@ -55,24 +54,32 @@ class _MovieState extends State<Movie> {
   }
 
   _init() async {
-    var resp = await response();
+    _genreProvider.list.clear();
+    var resp = await GenreApiService(sl<DioClient>().dio).getGenres();
 
     if (resp.status == true) {
-      movies.addAll(resp.data ?? []);
-      var movsLength = movies.length;
+      _genreProvider.list.addAll(resp.data ?? []);
+      var gensLength = _genreProvider.listCount;
 
-      for (int i = 0; i < ((movsLength / crossAxisCount).ceil()); i++) {
-        int itemsCount = (movsLength - ((i + 1) * crossAxisCount) > 0)
+      for (int i = 0; i < ((gensLength / crossAxisCount).ceil()); i++) {
+        int itemsCount = (gensLength - ((i + 1) * crossAxisCount) > 0)
             ? crossAxisCount
-            : (movsLength - (i * crossAxisCount)).abs();
+            : (gensLength - (i * crossAxisCount)).abs();
         ItemScrollController controller = ItemScrollController();
         _scrollControllers.add(controller);
         countsXLineSaver.add(itemsCount);
       }
-      setState(() => _initLoading = false);
+      setState(() {
+        _initLoading = false;
+      });
     } else {
       ///
     }
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    if (mounted) super.setState(fn);
   }
 
   Future _scrollToIndexXY(int x, int y) async {
@@ -84,7 +91,7 @@ class _MovieState extends State<Movie> {
         curve: Curves.fastOutSlowIn,
       );
     } catch (e) {
-      debugPrint(e.toString());
+      print(e);
     }
     _scrollController.scrollTo(
       index: y,
@@ -94,42 +101,41 @@ class _MovieState extends State<Movie> {
     );
   }
 
-  @override
-  void setState(VoidCallback fn) {
-    if (mounted) super.setState(fn);
-  }
-
   Future<void> _loadMore() async {
     if (_hasNextPage == true &&
         _initLoading == false &&
         _loadMoreRunning == false) {
       _loadMoreRunning = true;
+
       _page += 1;
 
-      var resp = await response();
+      var resp = await GenreApiService(sl<DioClient>().dio).getGenres(
+        page: _page,
+      );
 
       if (resp.status == true) {
-        List<MovieModel> movs = resp.data ?? [];
-        if (movs.isNotEmpty) {
-          movies.addAll(movs);
+        List<GenreModel> gens = resp.data ?? [];
+        if (gens.isNotEmpty) {
+          _genreProvider.addAll(gens);
+
           //clear old data
           _scrollControllers.clear();
           countsXLineSaver.clear();
 
           //re-add
-          var movsLength = movies.length;
+          var gensLength = _genreProvider.listCount;
 
-          for (int i = 0; i < ((movsLength / crossAxisCount).ceil()); i++) {
-            int itemsCount = (movsLength - ((i + 1) * crossAxisCount) > 0)
+          for (int i = 0; i < ((gensLength / crossAxisCount).ceil()); i++) {
+            int itemsCount = (gensLength - ((i + 1) * crossAxisCount) > 0)
                 ? crossAxisCount
-                : (movsLength - (i * crossAxisCount)).abs();
+                : (gensLength - (i * crossAxisCount)).abs();
             ItemScrollController controller = ItemScrollController();
             _scrollControllers.add(controller);
             countsXLineSaver.add(itemsCount);
           }
-
           _loadMoreRunning = false;
-          if (movs.length < 20) {
+
+          if (gens.length < 20) {
             _hasNextPage = false;
           }
         } else {
@@ -146,80 +152,59 @@ class _MovieState extends State<Movie> {
     return;
   }
 
-  Future<MovieResponseModel> response() async {
-    MovieResponseModel resp;
-    GetModel mod = widget.getModel;
-
-    if (mod.from == From.actor) {
-      resp = await MovieApiService(sl<DioClient>().dio).getMovieByActor(
-        actorId: mod.actor!,
-        page: _page,
-      );
-    } else if (mod.from == From.genre) {
-      resp = await MovieApiService(sl<DioClient>().dio).getMovieByGenre(
-        genreId: mod.genre!,
-        page: _page,
-      );
-    } else if (mod.from == From.search) {
-      resp = await MovieApiService(sl<DioClient>().dio).getMovieBySearch(
-        keyword: mod.keyword!,
-        page: _page,
-      );
-    } else {
-      ///all
-      resp = await MovieApiService(sl<DioClient>().dio).getMovies(
-        page: _page,
-      );
-    }
-    return resp;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Consumer<CurrentProvider>(
-      builder: (BuildContext context, CurrentProvider value, Widget? child) {
-        _isFocusOnTab = value.isFocusOnTab;
-        _currentPage = value.currentPage;
-        _currentTab = value.currentTab;
-        return KeyCodeListener(
-          focusNode: _focus,
-          upClick: _upClick,
-          downClick: _downClick,
-          leftClick: _leftClick,
-          rightClick: _rightClick,
-          centerClick: _centerClick,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 80),
-            child: _initLoading
-                ? ReusableWidget.loading(isCenter: true)
-                : Column(
-                    children: [
-                      Expanded(
-                        child: RmScrollWave(
-                          child: ScrollablePositionedList.builder(
-                            padding: const EdgeInsets.all(10),
-                            itemCount: (movies.length / crossAxisCount).ceil(),
-                            scrollDirection: Axis.vertical,
-                            itemScrollController: _scrollController,
-                            itemBuilder: (context, idx) {
-                              int itemsCount = (movies.length -
-                                          ((idx + 1) * crossAxisCount) >
-                                      0)
-                                  ? crossAxisCount
-                                  : (movies.length - (idx * crossAxisCount))
-                                      .abs();
-                              return _gridLineWidget(idx, itemsCount);
-                            },
+    return Consumer<GenreProvider>(
+      builder: (ctx, pd, child) {
+        _listCount = pd.listCount;
+        return Consumer<CurrentProvider>(
+          builder:
+              (BuildContext context, CurrentProvider value, Widget? child) {
+            _isFocusOnTab = value.isFocusOnTab;
+            _currentPage = value.currentPage;
+            _currentTab = value.currentTab;
+            return KeyCodeListener(
+              focusNode: _focus,
+              upClick: _upClick,
+              downClick: _downClick,
+              leftClick: _leftClick,
+              rightClick: _rightClick,
+              centerClick: _centerClick,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 80),
+                child: _initLoading
+                    ? ReusableWidget.loading(isCenter: true)
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: RmScrollWave(
+                              child: ScrollablePositionedList.builder(
+                                padding: const EdgeInsets.all(10),
+                                itemCount:
+                                    (pd.listCount / crossAxisCount).ceil(),
+                                scrollDirection: Axis.vertical,
+                                itemScrollController: _scrollController,
+                                itemBuilder: (context, idx) {
+                                  int itemsCount = (pd.listCount -
+                                              ((idx + 1) * crossAxisCount) >
+                                          0)
+                                      ? crossAxisCount
+                                      : (pd.listCount - (idx * crossAxisCount))
+                                          .abs();
+                                  return _gridLineWidget(idx, itemsCount);
+                                },
+                              ),
+                            ),
                           ),
-                        ),
+                          if (_loadMoreRunning)
+                            ReusableWidget.loadmoreLoading(
+                              margin: const EdgeInsets.symmetric(vertical: 5),
+                            ),
+                        ],
                       ),
-                      if (_loadMoreRunning)
-                        ReusableWidget.loadmoreLoading(
-                          margin: const EdgeInsets.only(bottom: 10),
-                        ),
-                    ],
-                  ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -227,8 +212,8 @@ class _MovieState extends State<Movie> {
 
   Widget _gridLineWidget(idx, int itemCount) {
     return Container(
-      height: 210,
-      margin: const EdgeInsets.only(bottom: 16),
+      height: 70,
+      margin: const EdgeInsets.only(bottom: 10),
       width: double.infinity,
       alignment: Alignment.center,
       child: RmScrollWave(
@@ -238,20 +223,13 @@ class _MovieState extends State<Movie> {
           itemScrollController: _scrollControllers[idx],
           scrollDirection: Axis.horizontal,
           itemBuilder: (context, index) {
-            var mov = movies[(idx * crossAxisCount) + index];
+            var gen = _genreProvider.list[(idx * crossAxisCount) + index];
             return Row(
               children: [
-                PosterItem(
-                  onTap: () {
-                    // Navigator.pushNamed(
-                    //   context,
-                    //   RouteName.movieDetail,
-                    //   arguments: mov,
-                    // );
-                  },
-                  cover: mov.poster,
-                  title: mov.title,
-                  isFocused: hasFocus(idx, index),
+                GenreCard(
+                  genre: gen,
+                  onTap: () {},
+                  isFocus: hasFocus(idx, index),
                 ),
                 if (itemCount < crossAxisCount && index == (itemCount - 1))
                   FakeItem(
@@ -272,7 +250,7 @@ class _MovieState extends State<Movie> {
   }
 
   void _upClick() {
-    if (_currentPage == 1 && _isFocusOnTab == false) {
+    if (_currentPage == 3 && _isFocusOnTab == false) {
       if (currentY == 0) {
         focusedIdx = -1;
         currentX = -1;
@@ -289,10 +267,10 @@ class _MovieState extends State<Movie> {
   }
 
   void _downClick() async {
-    if (_currentPage == 1) {
+    if (_currentPage == 3) {
       if (_initLoading) return;
 
-      if ((movies.length / crossAxisCount).ceil() - 1 == currentY) {
+      if ((_listCount / crossAxisCount).ceil() - 1 == currentY) {
         debugPrint("End");
       } else if (focusedIdx == -1) {
         changeFocus();
@@ -314,7 +292,7 @@ class _MovieState extends State<Movie> {
         }
         setState(() {});
 
-        var remaingY = (movies.length / crossAxisCount).ceil() - currentY;
+        var remaingY = (_listCount / crossAxisCount).ceil() - currentY;
         if (remaingY == 1) {
           await _loadMore();
         }
@@ -323,7 +301,7 @@ class _MovieState extends State<Movie> {
   }
 
   void _leftClick() {
-    if (_currentPage == 1 && _isFocusOnTab == false) {
+    if (_currentPage == 3 && _isFocusOnTab == false) {
       if (_initLoading) return;
 
       if (currentX == 0 && currentY != 0) {
@@ -343,10 +321,10 @@ class _MovieState extends State<Movie> {
   }
 
   void _rightClick() async {
-    if (_currentPage == 1 && _isFocusOnTab == false) {
+    if (_currentPage == 3 && _isFocusOnTab == false) {
       if (_initLoading) return;
 
-      if ((movies.length / crossAxisCount).ceil() - 1 == currentY &&
+      if ((_listCount / crossAxisCount).ceil() - 1 == currentY &&
           countsXLineSaver[currentY] - 1 == currentX) {
         debugPrint("No more data...");
       } else if (countsXLineSaver[currentY] - 1 == currentX) {
@@ -361,7 +339,7 @@ class _MovieState extends State<Movie> {
       focusedIdx = ((currentY * crossAxisCount) + currentX);
       setState(() {});
       //load more
-      var remaingY = (movies.length / crossAxisCount).ceil() - currentY;
+      var remaingY = (_listCount / crossAxisCount).ceil() - currentY;
       if (remaingY == 1) {
         await _loadMore();
       }
@@ -374,13 +352,37 @@ class _MovieState extends State<Movie> {
     //   return;
     // }
 
-    // var mov = movies[focusedIdx];
-    // Navigator.pushNamed(
-    //   context,
-    //   RouteName.movieDetail,
-    //   arguments: mov,
+    // var gen = _genreProvider.list[focusedIdx];
+    // SideSheet.right(
+    //   context: context,
+    //   width: MediaQuery.of(context).size.width / 3.2,
+    //   body: ChooseMovieOrSerie(
+    //     onSelect: (MainType typs) {
+    //       if (typs == MainType.movie) {
+    //         Navigator.popAndPushNamed(
+    //           context,
+    //           RouteName.movie,
+    //           arguments: GetModel(
+    //             from: From.genre,
+    //             genre: gen.id,
+    //             extra: gen.name,
+    //           ),
+    //         );
+    //       } else {
+    //         Navigator.popAndPushNamed(
+    //           context,
+    //           RouteName.serie,
+    //           arguments: GetModel(
+    //             from: From.genre,
+    //             genre: gen.id,
+    //             extra: gen.name,
+    //           ),
+    //         );
+    //       }
+    //     },
+    //   ),
     // );
-    if (_currentPage == 1 && _currentTab == 1) {
+    if (_currentPage == 3 && _currentTab == 3) {
       if (focusedIdx == -1) {
         changeFocus();
         focusedIdx = 0;
