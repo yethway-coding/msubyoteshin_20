@@ -1,6 +1,6 @@
 import 'package:msubyoteshin_20/features/home/provider/current_provider.dart';
 
-import '../../../widgets/key_code_listener.dart';
+import '../../../common/widgets/key_code_listener.dart';
 import '/common/utils/dio_client.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -152,61 +152,77 @@ class _GenreState extends State<Genre> {
     return;
   }
 
+  Future<bool> _onWillPop() async {
+    if (_currentPage == 3 && _isFocusOnTab == false) {
+      focusedIdx = -1;
+      currentX = -1;
+      currentY = -1;
+      changeFocus();
+      debugPrint('I am working...');
+      return await Future.value(false);
+    }
+    return await Future.value(true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<GenreProvider>(
-      builder: (ctx, pd, child) {
-        _listCount = pd.listCount;
-        return Consumer<CurrentProvider>(
-          builder:
-              (BuildContext context, CurrentProvider value, Widget? child) {
-            _isFocusOnTab = value.isFocusOnTab;
-            _currentPage = value.currentPage;
-            _currentTab = value.currentTab;
-            return KeyCodeListener(
-              focusNode: _focus,
-              upClick: _upClick,
-              downClick: _downClick,
-              leftClick: _leftClick,
-              rightClick: _rightClick,
-              centerClick: _centerClick,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 80),
-                child: _initLoading
-                    ? ReusableWidget.loading(isCenter: true)
-                    : Column(
-                        children: [
-                          Expanded(
-                            child: RmScrollWave(
-                              child: ScrollablePositionedList.builder(
-                                padding: const EdgeInsets.all(10),
-                                itemCount:
-                                    (pd.listCount / crossAxisCount).ceil(),
-                                scrollDirection: Axis.vertical,
-                                itemScrollController: _scrollController,
-                                itemBuilder: (context, idx) {
-                                  int itemsCount = (pd.listCount -
-                                              ((idx + 1) * crossAxisCount) >
-                                          0)
-                                      ? crossAxisCount
-                                      : (pd.listCount - (idx * crossAxisCount))
-                                          .abs();
-                                  return _gridLineWidget(idx, itemsCount);
-                                },
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Consumer<GenreProvider>(
+        builder: (ctx, pd, child) {
+          _listCount = pd.listCount;
+          return Consumer<CurrentProvider>(
+            builder:
+                (BuildContext context, CurrentProvider value, Widget? child) {
+              _isFocusOnTab = value.isFocusOnTab;
+              _currentPage = value.currentPage;
+              _currentTab = value.currentTab;
+              return KeyCodeListener(
+                focusNode: _focus,
+                upClick: _upClick,
+                downClick: _downClick,
+                leftClick: _leftClick,
+                rightClick: _rightClick,
+                centerClick: _centerClick,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 80),
+                  child: _initLoading
+                      ? ReusableWidget.loading(isCenter: true)
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: RmScrollWave(
+                                child: ScrollablePositionedList.builder(
+                                  padding: const EdgeInsets.all(10),
+                                  itemCount:
+                                      (pd.listCount / crossAxisCount).ceil(),
+                                  scrollDirection: Axis.vertical,
+                                  itemScrollController: _scrollController,
+                                  itemBuilder: (context, idx) {
+                                    int itemsCount = (pd.listCount -
+                                                ((idx + 1) * crossAxisCount) >
+                                            0)
+                                        ? crossAxisCount
+                                        : (pd.listCount -
+                                                (idx * crossAxisCount))
+                                            .abs();
+                                    return _gridLineWidget(idx, itemsCount);
+                                  },
+                                ),
                               ),
                             ),
-                          ),
-                          if (_loadMoreRunning)
-                            ReusableWidget.loadmoreLoading(
-                              margin: const EdgeInsets.symmetric(vertical: 5),
-                            ),
-                        ],
-                      ),
-              ),
-            );
-          },
-        );
-      },
+                            if (_loadMoreRunning)
+                              ReusableWidget.loadmoreLoading(
+                                margin: const EdgeInsets.symmetric(vertical: 5),
+                              ),
+                          ],
+                        ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

@@ -5,8 +5,9 @@ import 'package:msubyoteshin_20/features/genre/ui/genre.dart';
 import 'package:msubyoteshin_20/features/movie/ui/movie.dart';
 import 'package:msubyoteshin_20/features/serie/ui/series.dart';
 import 'package:provider/provider.dart';
+import '../../common/utils/toast.dart';
 import '/common/utils/tabs.dart';
-import '/widgets/key_code_listener.dart';
+import '../../common/widgets/key_code_listener.dart';
 import '/features/home/provider/current_provider.dart';
 import '/features/home/home.dart';
 
@@ -23,6 +24,7 @@ class _PageViewWidgetState extends State<PageViewWidget> {
   late int _currentTab;
   late int _currentPage;
   late bool _isFocusOnTab;
+  DateTime? currentBackPressTime;
 
   @override
   void initState() {
@@ -32,71 +34,89 @@ class _PageViewWidgetState extends State<PageViewWidget> {
     super.initState();
   }
 
+  Future<bool> onWillPop() async {
+    if (_isFocusOnTab == true) {
+      DateTime now = DateTime.now();
+      if (currentBackPressTime == null ||
+          now.difference(currentBackPressTime!) > const Duration(seconds: 2)) {
+        currentBackPressTime = now;
+        Toast.show(
+            tType: TType.warning,
+            message: 'ထွက်ရန် Back ကို နှစ်ချက်ဆက်တိုက် နှိပ်ပါ..!');
+        return await Future.value(false);
+      }
+    }
+    return await Future.value(true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: KeyCodeListener(
-        focusNode: _fNode,
-        upClick: _upClick,
-        downClick: _downClick,
-        leftClick: _leftClick,
-        rightClick: _rightClick,
-        centerClick: _centerClick,
-        child: Stack(
-          children: [
-            PageView(
-              physics: const NeverScrollableScrollPhysics(),
-              controller: _pageController,
-              children: const [
-                Home(),
-                Movie(getModel: GetModel(from: From.home)),
-                Serie(getModel: GetModel(from: From.home)),
-                Genre(),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 18, top: 18, right: 18),
-              child: Consumer<CurrentProvider>(
-                builder: (BuildContext context, CurrentProvider value,
-                    Widget? child) {
-                  _currentTab = value.currentTab;
-                  _currentPage = value.currentPage;
-                  _isFocusOnTab = value.isFocusOnTab;
-                  debugPrint('PageView: $_currentTab');
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ...List.generate(
-                            tabTitles.length,
-                            (index) => LeftTabWidget(
-                              title: tabTitles[index],
-                              isFocused: index == _currentTab,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          ...List.generate(
-                            tabIcons.length,
-                            (index) => RightTabWidget(
-                              icon: tabIcons[index],
-                              id: index - tabIcons.length,
-                              currentTab: _currentTab,
-                            ),
-                          ),
-                        ],
-                      )
-                    ],
-                  );
-                },
+    return WillPopScope(
+      onWillPop: onWillPop,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: KeyCodeListener(
+          focusNode: _fNode,
+          upClick: _upClick,
+          downClick: _downClick,
+          leftClick: _leftClick,
+          rightClick: _rightClick,
+          centerClick: _centerClick,
+          child: Stack(
+            children: [
+              PageView(
+                physics: const NeverScrollableScrollPhysics(),
+                controller: _pageController,
+                children: const [
+                  Home(),
+                  Movie(getModel: GetModel(from: From.home)),
+                  Serie(getModel: GetModel(from: From.home)),
+                  Genre(),
+                ],
               ),
-            )
-          ],
+              Padding(
+                padding: const EdgeInsets.only(left: 18, top: 18, right: 18),
+                child: Consumer<CurrentProvider>(
+                  builder: (BuildContext context, CurrentProvider value,
+                      Widget? child) {
+                    _currentTab = value.currentTab;
+                    _currentPage = value.currentPage;
+                    _isFocusOnTab = value.isFocusOnTab;
+                    debugPrint('PageView: $_currentTab');
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ...List.generate(
+                              tabTitles.length,
+                              (index) => LeftTabWidget(
+                                title: tabTitles[index],
+                                isFocused: index == _currentTab,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            ...List.generate(
+                              tabIcons.length,
+                              (index) => RightTabWidget(
+                                icon: tabIcons[index],
+                                id: index - tabIcons.length,
+                                currentTab: _currentTab,
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    );
+                  },
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

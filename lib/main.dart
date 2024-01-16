@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:msubyoteshin_20/routes/routes.dart';
 import '/common/widgets/provider_widget.dart';
@@ -18,11 +19,14 @@ class MyApp extends StatelessWidget {
     return ProviderWidget(
       child: MaterialApp(
         title: 'MSub YoteShin 2.0',
+        builder: BotToastInit(),
+        debugShowCheckedModeBanner: false,
+        navigatorObservers: [BotToastNavigatorObserver()],
+        onGenerateRoute: Routes.onGenerateRoute,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        onGenerateRoute: Routes.onGenerateRoute,
         home: const PageViewWidget(),
       ),
     );

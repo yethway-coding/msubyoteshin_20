@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../common/utils/key_code.dart';
+import '../utils/key_code.dart';
 
 class KeyCodeListener extends StatelessWidget {
   final FocusNode focusNode;
