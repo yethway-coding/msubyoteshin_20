@@ -22,8 +22,8 @@ class ActorItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        height: isFocused ? 120 : 110,
-        width: isFocused ? 120 : 110,
+        height: isFocused ? 100 : 90,
+        width: isFocused ? 100 : 90,
         clipBehavior: Clip.antiAlias,
         margin: margin ?? const EdgeInsets.symmetric(horizontal: 5),
         decoration: BoxDecoration(

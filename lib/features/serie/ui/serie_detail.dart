@@ -2,49 +2,66 @@ import 'dart:ui';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
-import 'package:msubyoteshin_20/common/utils/reusable_widget.dart';
-import 'package:msubyoteshin_20/common/widgets/choose_url.dart';
-import 'package:msubyoteshin_20/common/widgets/network_image_view.dart';
-import 'package:msubyoteshin_20/common/widgets/remove_scroll_wave.dart';
-import 'package:msubyoteshin_20/common/widgets/key_code_listener.dart';
-import 'package:msubyoteshin_20/src/side_sheet.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../common/utils/const.dart';
 import '../../../common/utils/dio_client.dart';
+import '../../../common/utils/reusable_widget.dart';
 import '../../../common/utils/service_locator.dart';
 import '../../../common/widgets/actor_item.dart';
-import '../data/model/movie_model.dart';
-import '../data/service/movie_api_service.dart';
+import '../../../common/widgets/network_image_view.dart';
+import '../../../common/widgets/remove_scroll_wave.dart';
+import '../data/model/serie_model.dart';
+import '../data/service/serie_api_service.dart';
 
-class MovieDetail extends StatefulWidget {
-  const MovieDetail({super.key, required this.movie});
-  final MovieModel movie;
+class SerieDetail extends StatefulWidget {
+  const SerieDetail({super.key, required this.serie});
+  final SerieModel serie;
 
   @override
-  State<MovieDetail> createState() => _MovieDetailState();
+  State<SerieDetail> createState() => _SerieDetailState();
 }
 
-class _MovieDetailState extends State<MovieDetail> {
+class _SerieDetailState extends State<SerieDetail> {
   final _focus = FocusNode();
   final _scrollController = ItemScrollController();
+  final _seasonScrollController = ItemScrollController();
+  final _episodeScrollController = ItemScrollController();
 
-  int _focusedIdx = -3;
-  MovieModel? mov;
+  int _focusedIdx = -2;
+  SerieModel? serie;
 
   _getDetail() async {
-    var resp = await MovieApiService(sl<DioClient>().dio).getMovieDetail(
-      id: widget.movie.id!,
+    var resp = await SerieApiService(sl<DioClient>().dio).getSerieDetail(
+      id: widget.serie.id!,
     );
 
     if (resp.status == true) {
-      mov = resp.data;
+      serie = resp.data;
       setState(() {});
     }
   }
 
   _scrollTo() {
     _scrollController.scrollTo(
+      index: _focusedIdx,
+      alignment: 0.04,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.linear,
+    );
+  }
+
+  _seasonScrollTo() {
+    _seasonScrollController.scrollTo(
+      index: _focusedIdx,
+      alignment: 0.04,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.linear,
+    );
+  }
+
+  _episodeScrollTo() {
+    _seasonScrollController.scrollTo(
       index: _focusedIdx,
       alignment: 0.04,
       duration: const Duration(milliseconds: 200),
@@ -65,39 +82,70 @@ class _MovieDetailState extends State<MovieDetail> {
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return Scaffold(
-      body: KeyCodeListener(
-        focusNode: _focus,
-        upClick: _upClick,
-        downClick: _downClick,
-        leftClick: _leftClick,
-        rightClick: _rightClick,
-        centerClick: _centerClick,
-        child: mov == null
+      body: Center(
+        child: serie == null
             ? ReusableWidget.loading(isCenter: true)
             : Stack(
                 alignment: Alignment.bottomLeft,
                 children: [
-                  background(url: mov!.backdrop ?? Const.dBackdrop, size: size),
+                  background(
+                      url: serie!.backdrop ?? Const.dBackdrop, size: size),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          poster(url: mov!.poster ?? Const.dBackdrop),
+                          poster(url: serie!.poster ?? Const.dBackdrop),
                           info(size),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      seasonList(),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 110,
+                        child: RmScrollWave(
+                            child: ScrollablePositionedList.builder(
+                                itemCount: 20,
+                                itemScrollController: _episodeScrollController,
+                                scrollDirection: Axis.horizontal,
+                                itemBuilder: (ctx, idx) {
+                                  return Container(
+                                    width: 180,
+                                    height: 80,
+                                    clipBehavior: Clip.antiAlias,
+                                    margin: EdgeInsets.only(right: 14, left: idx == 0 ? 26 : 0),
+                                    alignment: Alignment.bottomCenter,
+                                    decoration: BoxDecoration(
+                                      image: DecorationImage(image: ExtendedNetworkImageProvider(serie!.backdrop ??
+                                              Const.dBackdrop), fit: BoxFit.cover),
+                                      color: Colors.grey,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Container(
+                                          height: 40,
+                                          color: Colors.black.withOpacity(0.5),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'Episode',
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                  );
+                                })),
                       ),
                       Container(
                         margin: const EdgeInsets.only(top: 20, bottom: 20),
                         height: 110,
                         child: RmScrollWave(
                           child: ScrollablePositionedList.builder(
-                            itemCount: mov!.actors?.length ?? 0,
+                            itemCount: serie!.actors?.length ?? 0,
                             itemScrollController: _scrollController,
                             scrollDirection: Axis.horizontal,
                             itemBuilder: (ctx, idx) {
-                              var actor = mov!.actors![idx];
+                              var actor = serie!.actors![idx];
                               return ActorItem(
                                 onTap: () {},
                                 actor: actor,
@@ -118,6 +166,32 @@ class _MovieDetailState extends State<MovieDetail> {
     );
   }
 
+  Container seasonList() {
+    return Container(
+      height: 30,
+      margin: const EdgeInsets.only(left: 26),
+      child: RmScrollWave(
+        child: ScrollablePositionedList.builder(
+          itemCount: 20,
+          itemScrollController: _seasonScrollController,
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (ctx, idx) {
+            return Container(
+              margin: const EdgeInsets.only(right: 8),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(300),
+              ),
+              child: Text('Season $idx'),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Container info(Size size) {
     return Container(
       margin: const EdgeInsets.only(left: 26),
@@ -127,19 +201,19 @@ class _MovieDetailState extends State<MovieDetail> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            mov!.genres!.map((genre) => genre.name).join(' • '),
+            serie!.genres!.map((genre) => genre.name).join(' • '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white, fontSize: 10),
           ),
           Text(
-            '$rating $releaseYr $runTime',
+            '$rating $releaseYr',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white),
           ),
           Text(
-            '${mov!.title}',
+            '${serie!.title}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -147,7 +221,7 @@ class _MovieDetailState extends State<MovieDetail> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${mov!.overview}',
+            '${serie!.overview}',
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white),
@@ -156,8 +230,8 @@ class _MovieDetailState extends State<MovieDetail> {
           Row(
             children: [
               button(
-                  icon: Icons.play_arrow_outlined,
-                  title: 'Play',
+                  icon: Icons.movie,
+                  title: 'Trailer',
                   isFocused: _focusedIdx == -3),
               const SizedBox(width: 10),
               button(
@@ -166,7 +240,7 @@ class _MovieDetailState extends State<MovieDetail> {
                   isFocused: _focusedIdx == -2),
               const SizedBox(width: 10),
               button(
-                  icon: Icons.info_outline,
+                  icon: Icons.menu,
                   title: 'Review',
                   isFocused: _focusedIdx == -1),
             ],
@@ -196,9 +270,9 @@ class _MovieDetailState extends State<MovieDetail> {
       required String title,
       required bool isFocused}) {
     return Container(
-      width: 100,
       height: 30,
       alignment: Alignment.center,
+      padding: const EdgeInsets.only(left: 9, right: 12),
       decoration: BoxDecoration(
         color: isFocused ? Colors.white : Colors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(300),
@@ -211,6 +285,7 @@ class _MovieDetailState extends State<MovieDetail> {
             icon,
             color: isFocused ? Colors.black : Colors.white,
           ),
+          const SizedBox(width: 12),
           Text(
             title,
             style: TextStyle(
@@ -250,99 +325,10 @@ class _MovieDetailState extends State<MovieDetail> {
   }
 
   String get rating {
-    return mov!.rating == null ? "" : "Rating : ${mov!.rating}";
+    return serie!.rating == null ? "" : "Rating : ${serie!.rating}";
   }
 
   String get releaseYr {
-    return mov!.releaseYear == null ? "" : " | ${mov!.releaseYear}";
-  }
-
-  String get runTime {
-    return mov!.runtime == null ? " | Unknow Runtime" : " | ${mov!.runtime}";
-  }
-
-  void _upClick() {
-    if (_focusedIdx == -3 || _focusedIdx == -2 || _focusedIdx == -1) {
-      // _focusedIdx = -4;
-      // setState(() {});
-    } else if (!_focusedIdx.toString().startsWith("-")) {
-      _focusedIdx = -3;
-      setState(() {});
-      return;
-    }
-  }
-
-  void _downClick() {
-    if (mov == null) return;
-    if (_focusedIdx == -4) {
-      _focusedIdx = -3;
-      setState(() {});
-    } else if (_focusedIdx.toString().startsWith("-")) {
-      _focusedIdx = 0;
-      setState(() {});
-      _scrollTo();
-      return;
-    }
-  }
-
-  void _leftClick() {
-    if (mov == null) return;
-
-    if (_focusedIdx.toString().startsWith("-")) {
-      if (_focusedIdx == -3) {
-        // play now
-        // we don't have to go anymore
-      } else {
-        _focusedIdx--;
-        setState(() {});
-      }
-      return;
-    }
-
-    if (_focusedIdx == 0) {
-      //  _focusedIdx = tabs.length - 1;
-    } else {
-      _focusedIdx--;
-      setState(() {});
-      _scrollTo();
-    }
-  }
-
-  void _rightClick() {
-    if (mov == null) return;
-
-    if (_focusedIdx.toString().startsWith("-")) {
-      if (_focusedIdx == -1) {
-        // more info
-        // we don't have to go anymore
-      } else {
-        _focusedIdx++;
-        setState(() {});
-      }
-      return;
-    }
-
-    if (_focusedIdx == mov!.actors!.length - 1) {
-      // _focusedIdx = 0;
-    } else {
-      _focusedIdx++;
-      setState(() {});
-      _scrollTo();
-    }
-  }
-
-  void _centerClick() {
-    if (_focusedIdx == -3) {
-      SideSheet.right(
-        width: 230,
-        sheetBorderRadius: 16,
-        sheetColor: const Color(0xFF1C222B),
-        body: ChooseURL(
-          sources: mov!.sources!,
-          title: mov!.title ?? "",
-        ),
-        context: context,
-      );
-    }
+    return serie!.releaseYear == null ? "" : " | ${serie!.releaseYear}";
   }
 }

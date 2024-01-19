@@ -2,6 +2,7 @@ import 'package:msubyoteshin_20/features/home/provider/current_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../../common/widgets/key_code_listener.dart';
+import '../../../routes/route_name.dart';
 import '/common/utils/dio_client.dart';
 import 'package:flutter/material.dart';
 import '/common/widgets/fake_item.dart';
@@ -396,7 +397,7 @@ class _SerieState extends State<Serie> {
     //   RouteName.serieDetail,
     //   arguments: serie,
     // );
-    if (_currentPage == 1 && _currentTab == 1) {
+    if (_currentPage == 2 && _currentTab == 2) {
       if (focusedIdx == -1) {
         changeFocus();
         focusedIdx = 0;
@@ -404,8 +405,16 @@ class _SerieState extends State<Serie> {
         currentX = 0;
         _scrollToIndexXY(currentX, currentY);
         focusedIdx = ((currentY * crossAxisCount) + currentX);
+
+        setState(() {});
+        return;
       }
-      setState(() {});
+      var serie = series[focusedIdx];
+        Navigator.pushNamed(
+          context,
+          RouteName.serieDetail,
+          arguments: serie,
+        );
     }
   }
 

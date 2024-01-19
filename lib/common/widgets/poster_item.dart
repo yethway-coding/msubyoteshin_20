@@ -23,9 +23,7 @@ class PosterItem extends StatelessWidget {
         height: isFocused ? 210 : 200,
         width: isFocused ? 130 : 120,
         clipBehavior: Clip.antiAlias,
-        margin: const EdgeInsets.symmetric(
-          horizontal: 6,
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           boxShadow: isFocused
